@@ -66,65 +66,69 @@ int startTCPSocket() {
 
     std::cout << "Bind successfully on " << ipStr << ":" << port << " with code: " << iResult << std::endl;
 
+    bool isRunning = true;
+    int i = 0;
+    while (isRunning) {
+        SOCKADDR_IN clientAddr{};
+        int clientAddrSize = sizeof(clientAddr);
 
-    SOCKADDR_IN clientAddr{};
-    int clientAddrSize = sizeof(clientAddr);
+        SOCKET clientSocket = accept(listenSocket, reinterpret_cast<SOCKADDR*>(&clientAddr), &clientAddrSize);
+        if (clientSocket == INVALID_SOCKET) {
+            std::cout << "Accept failed with error: " << WSAGetLastError() << std::endl;
+            continue;
+        }
 
-    SOCKET clientSocket = accept(listenSocket, reinterpret_cast<SOCKADDR*>(&clientAddr), &clientAddrSize);
-    if (clientSocket == INVALID_SOCKET) {
-        std::cout << "Accept failed with error: " << WSAGetLastError() << std::endl;
-        return 1;
-    }
+        char ipClientStr[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &(clientAddr.sin_addr), ipClientStr, INET_ADDRSTRLEN);
 
-    char ipClientStr[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(clientAddr.sin_addr), ipClientStr, INET_ADDRSTRLEN);
+        std::cout << "Client " << ipClientStr << ":" << ntohs(clientAddr.sin_port) << " successfully accepted." << std::endl;
 
-    std::cout << "Client " << ipClientStr << ":" << ntohs(clientAddr.sin_port) << " successfully accepted." << std::endl;
+        char buffer[2048];
+        int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
-    char buffer[2048];
-    int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytesReceived > 0) {
+            std::cout << "Got " << bytesReceived << " bytes from client" << std::endl;
+            buffer[bytesReceived] = '\0';
 
-    if (bytesReceived > 0) {
-        std::cout << "Got " << bytesReceived << " bytes from client" << std::endl;
-        buffer[bytesReceived] = '\0';
-    }
-    else if (bytesReceived == 0) {
-        std::cout << "Client closed the connection" << std::endl;
-    } else {
-        std::cout << "Receive failed with error: " << WSAGetLastError() << std::endl;
+            std::cout << buffer << std::endl;
+
+            const std::string body = "<html><body><h1>Hello from C++ HTTP Server!</h1></body></html>";
+
+            std::string protocolCode = "HTTP/1.1 200 OK\r\n";
+            std::string contentType = "Content-Type: text/html; charset=utf-8\r\n";
+            std::string contentLength = "Content-Length: " + std::to_string(body.length()) + "\r\n";
+            std::string connectionType = "Connection: close\r\n";
+
+            std::string fullResponse = protocolCode + contentType + contentLength + connectionType + "\r\n" + body;
+
+
+            const char* content = fullResponse.c_str();
+            const int responseLength = fullResponse.length();
+            int bytesSent = send(clientSocket, content, responseLength, 0);
+            if (bytesSent == responseLength) {
+                std::cout << "Response has sent successfully with " << responseLength << " bytes." << std::endl;
+            }
+            else if (bytesSent >= 0) {
+                std::cout << "Sent " << bytesSent << " bytes to client, lost " << responseLength-bytesSent << " bytes." << std::endl;
+            }
+            else {
+                std::cout << "Send error: " << WSAGetLastError() << std::endl;
+            }
+        }
+        else if (bytesReceived == 0) {
+            std::cout << "Client closed the connection" << std::endl;
+        } else {
+            std::cout << "Receive failed with error: " << WSAGetLastError() << std::endl;
+            closesocket(clientSocket);
+            continue;
+        }
+        i  += 1;
+        if (i > 9) isRunning = false;
         closesocket(clientSocket);
-        return 1;
+        std::cout << "----------------------------------------\n" << std::endl;
     }
 
-    std::cout << buffer << std::endl;
-
-    const std::string body = "<html><body><h1>Hello from C++ HTTP Server!</h1></body></html>";
-
-    std::string protocolCode = "HTTP/1.1 200 OK\r\n";
-    std::string contentType = "Content-Type: text/html; charset=utf-8\r\n";
-    std::string contentLength = "Content-Length: " + std::to_string(body.length()) + "\r\n";
-    std::string connectionType = "Connection: close\r\n";
-
-    std::string fullResponse = protocolCode + contentType + contentLength + connectionType + "\r\n" + body;
-
-
-    const char* content = fullResponse.c_str();
-    const int responseLength = fullResponse.length();
-    int bytesSent = send(clientSocket, content, responseLength, 0);
-    if (bytesSent == responseLength) {
-        std::cout << "Response has sent successfully with " << responseLength << " bytes." << std::endl;
-    }
-    else if (bytesSent >= 0) {
-        std::cout << "Sent " << bytesSent << " bytes to client, lost " << responseLength-bytesSent << " bytes." << std::endl;
-    }
-    else {
-        std::cout << "Send error: " << WSAGetLastError() << std::endl;
-    }
-    closesocket(clientSocket);
-
-    std::cout << "Shutting down server..." << std::endl;
     closesocket(listenSocket);
-    std::cout << "Shutdown success." << std::endl;
     return 0;
 }
 
