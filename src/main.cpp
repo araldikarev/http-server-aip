@@ -93,11 +93,33 @@ int startTCPSocket() {
     } else {
         std::cout << "Receive failed with error: " << WSAGetLastError() << std::endl;
         closesocket(clientSocket);
+        return 1;
     }
-
 
     std::cout << buffer << std::endl;
 
+    const std::string body = "<html><body><h1>Hello from C++ HTTP Server!</h1></body></html>";
+
+    std::string protocolCode = "HTTP/1.1 200 OK\r\n";
+    std::string contentType = "Content-Type: text/html; charset=utf-8\r\n";
+    std::string contentLength = "Content-Length: " + std::to_string(body.length()) + "\r\n";
+    std::string connectionType = "Connection: close\r\n";
+
+    std::string fullResponse = protocolCode + contentType + contentLength + connectionType + "\r\n" + body;
+
+
+    const char* content = fullResponse.c_str();
+    const int responseLength = fullResponse.length();
+    int bytesSent = send(clientSocket, content, responseLength, 0);
+    if (bytesSent == responseLength) {
+        std::cout << "Response has sent successfully with " << responseLength << " bytes." << std::endl;
+    }
+    else if (bytesSent >= 0) {
+        std::cout << "Sent " << bytesSent << " bytes to client, lost " << responseLength-bytesSent << " bytes." << std::endl;
+    }
+    else {
+        std::cout << "Send error: " << WSAGetLastError() << std::endl;
+    }
     closesocket(clientSocket);
 
     std::cout << "Shutting down server..." << std::endl;
