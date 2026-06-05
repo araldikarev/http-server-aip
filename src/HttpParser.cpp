@@ -1,10 +1,10 @@
 #include "HttpParser.h"
 
 std::string_view  Trim(std::string_view str) {
-    while (!str.empty() && std::isspace(str.front())) {
+    while (!str.empty() && std::isspace(static_cast<unsigned char>(str.front()))) {
         str.remove_prefix(1);
     }
-    while (!str.empty() && std::isspace(str.back())) {
+    while (!str.empty() && std::isspace(static_cast<unsigned char>(str.back()))) {
         str.remove_suffix(1);
     }
     return str;
@@ -12,7 +12,7 @@ std::string_view  Trim(std::string_view str) {
 
 HttpRequest HttpParser::Parse(const std::string &rawRequest) {
     if (rawRequest.empty()) {
-        return {};
+        throw HttpParseException("Empty request received");
     }
 
     HttpRequest request;
@@ -20,24 +20,24 @@ HttpRequest HttpParser::Parse(const std::string &rawRequest) {
 
     const size_t method_end = view.find(' ');
     if (method_end == std::string_view::npos) {
-        return {};
+        throw HttpParseException("Malformed request: Method not found");
     }
     request.method = view.substr(0, method_end);
     view.remove_prefix(method_end+1);
 
     const size_t path_end = view.find(' ');
     if (path_end == std::string_view::npos) {
-        return {};
+        throw HttpParseException("Malformed request: Path not found");
     }
     request.path = view.substr(0, path_end);
     view.remove_prefix(path_end+1);
 
     const size_t version_end = view.find('\r');
     if (version_end == std::string_view::npos) {
-        return {};
+        throw HttpParseException("Malformed request: HTTP version end not found");
     }
     request.version = view.substr(0, version_end);
-    view.remove_prefix(version_end+4);
+    view.remove_prefix(version_end+2);
 
     while (true) {
 
@@ -58,6 +58,8 @@ HttpRequest HttpParser::Parse(const std::string &rawRequest) {
             std::string_view header_value = Trim(header.substr(colon_pos + 1));
 
             request.headers.insert_or_assign(std::string(header_name), std::string(header_value));
+        } else {
+            throw HttpParseException("Malformed header: missing colon");
         }
 
         view.remove_prefix(header_end + 2);
