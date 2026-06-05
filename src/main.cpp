@@ -3,6 +3,10 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+#include "HttpParser.h"
+#include "HttpStructs.h"
+#include "Router.h"
+
 #pragma comment(lib, "Ws2_32.lib")
 
 
@@ -62,14 +66,12 @@ int startTCPSocket() {
     if (iResult == SOCKET_ERROR) {
         const int errorCode = WSAGetLastError();
         std::cout << "Bind failed with code: " << errorCode << std::endl;
-        closesocket(listenSocket);
         return errorCode;
     }
 
     if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR) {
         const int errorCode = WSAGetLastError();
         std::cout << "Listen failed with Winsock error code: " << errorCode << std::endl;
-        closesocket(listenSocket);
         return errorCode;
     }
 
@@ -80,6 +82,15 @@ int startTCPSocket() {
 
     bool isRunning = true;
     int i = 0;
+
+    Router router;
+    router.AddRoute("GET", "/", [](const HttpRequest& req) {
+        HttpResponse res;
+        res.headers["Content-Type"] = "text/html; charset=utf-8";
+        res.body = "<h1>Welcome to Home Page!</h1>";
+        return res;
+    });
+
     while (isRunning) {
         SOCKADDR_IN clientAddr{};
         int clientAddrSize = sizeof(clientAddr);
@@ -100,60 +111,48 @@ int startTCPSocket() {
         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
 
         if (bytesReceived > 0) {
-            std::cout << "Got " << bytesReceived << " bytes from client" << std::endl;
             buffer[bytesReceived] = '\0';
 
-            std::cout << buffer << std::endl;
+            try {
+                HttpRequest parsedReq = HttpParser::Parse(buffer);
+                HttpResponse response = router.Route(parsedReq);
+                std::string rawResponse = response.to_string();
 
-            const std::string body = "<html><body><h1>Hello from C++ HTTP Server!</h1></body></html>";
-
-            std::string protocolCode = "HTTP/1.1 200 OK\r\n";
-            std::string contentType = "Content-Type: text/html; charset=utf-8\r\n";
-            std::string contentLength = "Content-Length: " + std::to_string(body.length()) + "\r\n";
-            std::string connectionType = "Connection: close\r\n";
-
-            std::string fullResponse = protocolCode + contentType + contentLength + connectionType + "\r\n" + body;
-
-
-            const char* content = fullResponse.c_str();
-            const int responseLength = fullResponse.length();
-            int bytesSent = send(clientSocket, content, responseLength, 0);
-            if (bytesSent == responseLength) {
-                std::cout << "Response has sent successfully with " << responseLength << " bytes." << std::endl;
-            }
-            else if (bytesSent >= 0) {
-                std::cout << "Sent " << bytesSent << " bytes to client, lost " << responseLength-bytesSent << " bytes." << std::endl;
-            }
-            else {
-                std::cout << "Send error: " << WSAGetLastError() << std::endl;
+                send(clientSocket, rawResponse.c_str(), rawResponse.length(), 0);
+                std::cout << "Response sent successfully." << std::endl;
+            } catch (const HttpParseException& e) {
+                std::cout << "Parser error: " << e.what() << std::endl;
+                HttpResponse badRequestResponse;
+                badRequestResponse.status_code = 400;
+                badRequestResponse.status_message = "Bad Request";
+                badRequestResponse.body = "<h1>400 Bad Request</h1>";
+                std::string rawResponse = badRequestResponse.to_string();
+                send(clientSocket, rawResponse.c_str(), rawResponse.length(), 0);
             }
         }
         else if (bytesReceived == 0) {
             std::cout << "Client closed the connection" << std::endl;
         } else {
             std::cout << "Receive failed with error: " << WSAGetLastError() << std::endl;
-            closesocket(clientSocket);
             continue;
         }
-        i  += 1;
-        if (i > 9) isRunning = false;
-        closesocket(clientSocket);
         std::cout << "----------------------------------------\n" << std::endl;
     }
 
-    closesocket(listenSocket);
     return 0;
 }
 
 
 int main() {
-    //Инициализация сетевого
-    if (initializeWSA() != 0) {
-        return 1;
-    }
+    try {
+        if (initializeWSA() != 0) {
+            return 1;
+        }
 
-    if (const int tcpResult = startTCPSocket(); tcpResult != 0) {
-        std::cout << "TCP Socket failed with code: " << tcpResult << std::endl;
+        startTCPSocket();
+
+    } catch (const std::exception& e) {
+        std::cerr << "Fatal Error: " << e.what() << std::endl;
     }
 
     cleanupWSA();
