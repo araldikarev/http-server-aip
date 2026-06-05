@@ -1,13 +1,8 @@
-//
-// Created by mrtak on 05.06.2026.
-//
-
-#ifndef HTTPSERVER_HTTPPARSER_H
-#define HTTPSERVER_HTTPPARSER_H
-
+#pragma once
+#include "HttpStructs.h"
 
 class HttpParser {
+public:
+    static HttpRequest Parse(const std::string &rawRequest);
 };
 
-
-#endif //HTTPSERVER_HTTPPARSER_H

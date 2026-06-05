@@ -29,15 +29,27 @@ int cleanupWSA() {
     return iResult;
 }
 
-int startTCPSocket() {
-    const SOCKET listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+struct SocketGuard {
+    SOCKET socket;
+    explicit SocketGuard(SOCKET s) : socket(s) {}
+    ~SocketGuard() {if (socket != INVALID_SOCKET) closesocket(socket);}
 
-    if (listenSocket == INVALID_SOCKET) {
+    operator SOCKET() const { return socket; }
+
+    SocketGuard(const SocketGuard&) = delete;
+    SocketGuard& operator=(const SocketGuard&) = delete;
+};
+
+int startTCPSocket() {
+    const SOCKET listenSocketRaw = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    if (listenSocketRaw == INVALID_SOCKET) {
         std::cout << "Socket creation failed with error: " << WSAGetLastError() << std::endl;
         return 1;
     }
+    const SocketGuard listenSocket(listenSocketRaw);
 
-    constexpr int port = 8080;
+    constexpr int port = 8010;
 
     SOCKADDR_IN serverAddr{};
     serverAddr.sin_family = AF_INET;
@@ -72,11 +84,12 @@ int startTCPSocket() {
         SOCKADDR_IN clientAddr{};
         int clientAddrSize = sizeof(clientAddr);
 
-        SOCKET clientSocket = accept(listenSocket, reinterpret_cast<SOCKADDR*>(&clientAddr), &clientAddrSize);
-        if (clientSocket == INVALID_SOCKET) {
+        const SOCKET clientSocketRaw = accept(listenSocket, reinterpret_cast<SOCKADDR*>(&clientAddr), &clientAddrSize);
+        if (clientSocketRaw == INVALID_SOCKET) {
             std::cout << "Accept failed with error: " << WSAGetLastError() << std::endl;
             continue;
         }
+        const SocketGuard clientSocket(clientSocketRaw);
 
         char ipClientStr[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &(clientAddr.sin_addr), ipClientStr, INET_ADDRSTRLEN);

@@ -1,13 +1,12 @@
-//
-// Created by mrtak on 05.06.2026.
-//
+#pragma once
+#include <string>
+#include <unordered_map>
 
-#ifndef HTTPSERVER_HTTPSTRUCTS_H
-#define HTTPSERVER_HTTPSTRUCTS_H
-
-
-class HttpStructs {
+struct HttpRequest {
+    std::string method;
+    std::string path;
+    std::string version;
+    std::unordered_map<std::string, std::string> headers;
+    std::string body;
 };
 
-
-#endif //HTTPSERVER_HTTPSTRUCTS_H
