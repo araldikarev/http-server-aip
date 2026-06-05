@@ -34,7 +34,6 @@ int startTCPSocket() {
 
     if (listenSocket == INVALID_SOCKET) {
         std::cout << "Socket creation failed with error: " << WSAGetLastError() << std::endl;
-        cleanupWSA();
         return 1;
     }
 
@@ -55,7 +54,6 @@ int startTCPSocket() {
         return errorCode;
     }
 
-
     if (listen(listenSocket, SOMAXCONN) == SOCKET_ERROR) {
         const int errorCode = WSAGetLastError();
         std::cout << "Listen failed with Winsock error code: " << errorCode << std::endl;
@@ -69,7 +67,38 @@ int startTCPSocket() {
     std::cout << "Bind successfully on " << ipStr << ":" << port << " with code: " << iResult << std::endl;
 
 
-    system("timeout /t 30");
+    SOCKADDR_IN clientAddr{};
+    int clientAddrSize = sizeof(clientAddr);
+
+    SOCKET clientSocket = accept(listenSocket, reinterpret_cast<SOCKADDR*>(&clientAddr), &clientAddrSize);
+    if (clientSocket == INVALID_SOCKET) {
+        std::cout << "Accept failed with error: " << WSAGetLastError() << std::endl;
+        return 1;
+    }
+
+    char ipClientStr[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(clientAddr.sin_addr), ipClientStr, INET_ADDRSTRLEN);
+
+    std::cout << "Client " << ipClientStr << ":" << ntohs(clientAddr.sin_port) << " successfully accepted." << std::endl;
+
+    char buffer[2048];
+    int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+
+    if (bytesReceived > 0) {
+        std::cout << "Got " << bytesReceived << " bytes from client" << std::endl;
+        buffer[bytesReceived] = '\0';
+    }
+    else if (bytesReceived == 0) {
+        std::cout << "Client closed the connection" << std::endl;
+    } else {
+        std::cout << "Receive failed with error: " << WSAGetLastError() << std::endl;
+        closesocket(clientSocket);
+    }
+
+
+    std::cout << buffer << std::endl;
+
+    closesocket(clientSocket);
 
     std::cout << "Shutting down server..." << std::endl;
     closesocket(listenSocket);
