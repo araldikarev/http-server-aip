@@ -8,6 +8,8 @@ using HttpHandler = std::function<HttpResponse(const HttpRequest&)>;
  * @brief Класс маршрутизатора (Router) для сопоставления путей и обработчиков.
  */
 class Router {
+private:
+    std::unordered_map<std::string, HttpHandler> routes_;
 public:
     /**
      * @brief Добавляет новый маршрут в таблицу маршрутизации.
@@ -25,6 +27,4 @@ public:
      * @return Объект HttpResponse.
      */
     HttpResponse Route(const HttpRequest& request) const;
-private:
-    std::unordered_map<std::string, HttpHandler> routes_;
 };

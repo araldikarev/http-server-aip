@@ -10,7 +10,12 @@ add_executable(HttpServer src/main.cpp
         src/HttpParser.cpp
         src/HttpParser.h
         src/Router.cpp
-        src/Router.h)
+        src/Router.h
+        src/Logger.cpp
+        src/Logger.h
+        src/HttpServer.cpp
+        src/HttpServer.h
+)
 
 if(WIN32)
     target_link_libraries(HttpServer ws2_32)
