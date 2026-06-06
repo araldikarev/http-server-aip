@@ -1,14 +1,16 @@
+#include "TcpServer.h"
+
 #include <ws2tcpip.h>
+
 #include <utility>
 
-#include "TcpServer.h"
 #include "Logger.h"
 
 TcpServer::TcpServer(int port, ConnectionHandler connectionHandler)
     : port_(port), connectionHandler_(std::move(connectionHandler)), isRunning_(false), listenSocket_(INVALID_SOCKET) {
     WSAData data;
     if (const int iResult = WSAStartup(MAKEWORD(2, 2), &data); iResult != 0) {
-        throw TcpServerException("WSAStartup failed with error" + std::to_string(iResult));
+        throw TcpServerException("WSAStartup failed with error: " + std::to_string(iResult));
     }
     Logger::Info("WinSock initialized successfully.");
 }
@@ -49,11 +51,7 @@ void TcpServer::Start() {
 
     char ipStr[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(serverAddr.sin_addr), ipStr, INET_ADDRSTRLEN);
-    Logger::Info(
-        "Server successfully listening on " +
-        std::string(ipStr) +
-        ":" +
-        std::to_string(port_));
+    Logger::Info("Server successfully listening on " + std::string(ipStr) + ":" + std::to_string(port_));
     isRunning_ = true;
 
     while (isRunning_) {
@@ -68,12 +66,8 @@ void TcpServer::Start() {
 
         char ipClientStr[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &(clientAddr.sin_addr), ipClientStr, INET_ADDRSTRLEN);
-        Logger::Info(
-            "Client connected: " +
-            std::string(ipClientStr) +
-            ":" +
-            std::to_string(ntohs(clientAddr.sin_port))
-        );
+        Logger::Info("Client connected: " + std::string(ipClientStr) + ":" +
+                     std::to_string(ntohs(clientAddr.sin_port)));
 
         try {
             TcpConnection connection(clientSocketRaw);

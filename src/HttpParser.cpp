@@ -1,6 +1,10 @@
 #include "HttpParser.h"
+
 #include <cctype>
 
+/// @brief Removes leading and trailing whitespace from a string view.
+/// @param str View to trim.
+/// @return Trimmed view referencing the original text.
 std::string_view Trim(std::string_view str) {
     while (!str.empty() && std::isspace(static_cast<unsigned char>(str.front()))) {
         str.remove_prefix(1);
@@ -79,10 +83,7 @@ HttpRequest HttpParser::Parse(const std::string &rawRequest) {
                 throw HttpParseException("Malformed header: empty header name");
             }
 
-            request.headers.insert_or_assign(
-                std::string(header_name),
-                std::string(header_value)
-            );
+            request.headers.insert_or_assign(std::string(header_name), std::string(header_value));
         } else {
             throw HttpParseException("Malformed header: missing colon");
         }

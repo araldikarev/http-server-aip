@@ -1,29 +1,23 @@
 #pragma once
+
 #include <stdexcept>
+
 #include "HttpStructs.h"
 
-
-/**
- * @brief Исключение, выбрасываемое при ошибках парсинга HTTP-запроса.
- */
+/// @brief Exception thrown when an HTTP request cannot be parsed.
 class HttpParseException : public std::runtime_error {
 public:
-    explicit HttpParseException(const std::string &message)
-        : std::runtime_error(message) {
-    }
+    /// @brief Creates a parsing exception with a readable message.
+    /// @param message Error description.
+    explicit HttpParseException(const std::string &message) : std::runtime_error(message) {}
 };
 
-/**
- * @brief Класс для парсинга сырых текстовых HTTP-запросов.
- */
+/// @brief Parses raw HTTP request text into a structured representation.
 class HttpParser {
 public:
-    /**
-     * @brief Парсит сырой HTTP-запрос из строки в структуру HttpRequest.
-     *
-     * @param rawRequest Входящая строка с сырым HTTP-запросом.
-     * @return Заполненная структура HttpRequest.
-     * @throws HttpParseException Если запрос имеет некорректный формат.
-     */
+    /// @brief Parses a raw HTTP request string into HttpRequest.
+    /// @param rawRequest Full request text including headers and optional body.
+    /// @return Parsed request structure.
+    /// @throws HttpParseException If the request is malformed or unsupported.
     static HttpRequest Parse(const std::string &rawRequest);
 };

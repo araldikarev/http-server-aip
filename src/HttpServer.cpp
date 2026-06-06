@@ -8,69 +8,65 @@
 #include "Logger.h"
 
 namespace {
-    std::string ToLower(std::string value) {
-        std::transform(
-            value.begin(),
-            value.end(),
-            value.begin(),
-            [](unsigned char c) {
-                return static_cast<char>(std::tolower(c));
-            }
-        );
-        return value;
+/// @brief Converts a string to lowercase.
+/// @param value Source string.
+/// @return Lowercased copy of the input.
+std::string ToLower(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return value;
+}
+
+/// @brief Removes leading and trailing whitespace from a string copy.
+/// @param value Source string.
+/// @return Trimmed string copy.
+std::string TrimCopy(std::string value) {
+    while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front()))) {
+        value.erase(value.begin());
+    }
+    while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back()))) {
+        value.pop_back();
+    }
+    return value;
+}
+
+/// @brief Extracts the Content-Length value from serialized HTTP headers.
+/// @param headersPart Raw header block without the terminating empty line.
+/// @return Parsed body length or zero when the header is absent.
+/// @throws HttpParseException If Content-Length is present but invalid.
+size_t ExtractContentLength(const std::string &headersPart) {
+    const std::string lowered = ToLower(headersPart);
+    const std::string headerName = "content-length:";
+
+    const size_t pos = lowered.find(headerName);
+    if (pos == std::string::npos) {
+        return 0;
     }
 
-    std::string TrimCopy(std::string value) {
-        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front()))) {
-            value.erase(value.begin());
-        }
-        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back()))) {
-            value.pop_back();
-        }
-        return value;
+    const size_t valueStart = pos + headerName.length();
+    const size_t valueEnd = headersPart.find("\r\n", valueStart);
+
+    std::string value = valueEnd == std::string::npos ? headersPart.substr(valueStart)
+                                                      : headersPart.substr(valueStart, valueEnd - valueStart);
+
+    value = TrimCopy(value);
+
+    if (value.empty()) {
+        throw HttpParseException("Invalid Content-Length header");
     }
 
-    size_t ExtractContentLength(const std::string &headersPart) {
-        const std::string lowered = ToLower(headersPart);
-        const std::string headerName = "content-length:";
-
-        const size_t pos = lowered.find(headerName);
-        if (pos == std::string::npos) {
-            return 0;
-        }
-
-        const size_t valueStart = pos + headerName.length();
-        const size_t valueEnd = headersPart.find("\r\n", valueStart);
-
-        std::string value = valueEnd == std::string::npos
-                                ? headersPart.substr(valueStart)
-                                : headersPart.substr(valueStart, valueEnd - valueStart);
-
-        value = TrimCopy(value);
-
-        if (value.empty()) {
-            throw HttpParseException("Invalid Content-Length header");
-        }
-
-        try {
-            return static_cast<size_t>(std::stoul(value));
-        } catch (const std::exception &) {
-            throw HttpParseException("Invalid Content-Length header");
-        }
+    try {
+        return static_cast<size_t>(std::stoul(value));
+    } catch (const std::exception &) {
+        throw HttpParseException("Invalid Content-Length header");
     }
 }
+}  // namespace
 
 HttpServer::HttpServer(int port)
-    : tcpServer_(port, [this](TcpConnection &connection) {
-        HandleConnection(connection);
-    }) {
-}
+    : tcpServer_(port, [this](TcpConnection &connection) { HandleConnection(connection); }) {}
 
-void HttpServer::AddRoute(
-    const std::string &method,
-    const std::string &path,
-    const HttpHandler &handler
-) {
+void HttpServer::AddRoute(const std::string &method, const std::string &path, const HttpHandler &handler) {
     router_.AddRoute(method, path, handler);
 }
 

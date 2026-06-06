@@ -1,6 +1,9 @@
 #include <iostream>
+
 #include "HttpServer.h"
 
+/// @brief Configures demo routes and starts the HTTP server.
+/// @return Zero on success and a non-zero code on fatal startup errors.
 int main() {
     try {
         constexpr int PORT = 8010;
