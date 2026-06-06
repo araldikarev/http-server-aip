@@ -2,7 +2,7 @@
 #include <functional>
 #include "HttpStructs.h"
 
-using HttpHandler = std::function<HttpResponse(const HttpRequest&)>;
+using HttpHandler = std::function<HttpResponse(const HttpRequest &)>;
 
 /**
  * @brief Класс маршрутизатора (Router) для сопоставления путей и обработчиков.
@@ -10,6 +10,7 @@ using HttpHandler = std::function<HttpResponse(const HttpRequest&)>;
 class Router {
 private:
     std::unordered_map<std::string, HttpHandler> routes_;
+
 public:
     /**
      * @brief Добавляет новый маршрут в таблицу маршрутизации.
@@ -18,7 +19,7 @@ public:
      * @param path URL путь (например, "/").
      * @param handler Функция-обработчик для данного маршрута.
      */
-    void AddRoute(const std::string& method, const std::string& path, const HttpHandler &handler);
+    void AddRoute(const std::string &method, const std::string &path, const HttpHandler &handler);
 
     /**
      * @brief Ищет подходящий обработчик для запроса и возвращает ответ.
@@ -26,5 +27,5 @@ public:
      * @param request Входящий распарсенный HTTP-запрос.
      * @return Объект HttpResponse.
      */
-    HttpResponse Route(const HttpRequest& request) const;
+    HttpResponse Route(const HttpRequest &request) const;
 };

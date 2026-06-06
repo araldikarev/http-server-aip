@@ -15,6 +15,8 @@ add_executable(HttpServer src/main.cpp
         src/Logger.h
         src/HttpServer.cpp
         src/HttpServer.h
+        src/TcpConnection.cpp
+        src/TcpConnection.h
 )
 
 if(WIN32)

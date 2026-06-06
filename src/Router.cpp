@@ -1,11 +1,11 @@
 #include "Router.h"
 
-void Router::AddRoute(const std::string& method, const std::string& path, const HttpHandler &handler) {
+void Router::AddRoute(const std::string &method, const std::string &path, const HttpHandler &handler) {
     const std::string key = method + " " + path;
     routes_[key] = handler;
 }
 
-HttpResponse Router::Route(const HttpRequest& request) const {
+HttpResponse Router::Route(const HttpRequest &request) const {
     const std::string key = request.method + " " + request.path;
 
     auto it = routes_.find(key);

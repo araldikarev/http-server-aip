@@ -8,8 +8,9 @@
  */
 class HttpParseException : public std::runtime_error {
 public:
-    explicit HttpParseException(const std::string& message)
-        : std::runtime_error(message) {}
+    explicit HttpParseException(const std::string &message)
+        : std::runtime_error(message) {
+    }
 };
 
 /**
@@ -26,4 +27,3 @@ public:
      */
     static HttpRequest Parse(const std::string &rawRequest);
 };
-

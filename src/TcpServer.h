@@ -5,31 +5,37 @@
 #include <winsock2.h>
 #include <string>
 
+#include "TcpConnection.h"
+
 class TcpServerException : public std::runtime_error {
 public:
-    explicit TcpServerException(const std::string& message)
-        : std::runtime_error(message) {}
+    explicit TcpServerException(const std::string &message)
+        : std::runtime_error(message) {
+    }
 };
 
 class TcpServer {
 public:
-    using DataHandler = std::function<std::string(const std::string&)>;
+    using ConnectionHandler = std::function<void(TcpConnection &)>;
+
 private:
     int port_;
-    DataHandler dataHandler_;
+    ConnectionHandler connectionHandler_;
     bool isRunning_;
     SOCKET listenSocket_;
+
 public:
-    TcpServer(int port, DataHandler dataHandler);
+    TcpServer(int port, ConnectionHandler connectionHandler);
+
     ~TcpServer();
+
     void Start();
+
     void Stop();
+
     bool IsRunning() const;
 
-    TcpServer(const TcpServer&) = delete;
-    TcpServer& operator=(const TcpServer&) = delete;
+    TcpServer(const TcpServer &) = delete;
 
-private:
-    std::string Receive(SOCKET clientSocket) const;
-    void Send(SOCKET clientSocket, const std::string& data) const;
+    TcpServer &operator=(const TcpServer &) = delete;
 };

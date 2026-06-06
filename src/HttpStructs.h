@@ -22,7 +22,7 @@ struct HttpResponse {
         const std::string response_body = body;
         response += "Content-Length: " + std::to_string(response_body.length()) + "\r\n";
 
-        for (const auto& [key, value] : headers) {
+        for (const auto &[key, value]: headers) {
             response += key + ": " + value + "\r\n";
         }
         response += "\r\n";
